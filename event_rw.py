@@ -8,13 +8,28 @@ if __name__ == "__main__":
 class ME_interface(object):
     """Collection of methods for interfacing with MadGraph standalone matrix elements"""
 
+    # PDG codes used to identify correct lib.
+    # Note that the same matrix elements are used for e and mu.
+    self.pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex"}    
 
-    def __init__(self):
-        # PDG codes used to identify correct lib.
-        # Note that the same matrix elements are used for e and mu.
-        self.pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex"}
+    def __init__(self, path=""):
+        """Interface constructor. Optionally sets path to parameter card directory"""
         self.mods = None
+        self.param_dir = path
+        self.param_card = "param_card.dat"
 
+    def set_param_card(self, name):
+        """Updates current param card"""
+        self.param_card = name
+        if self.mods: self.initialise_all()
+        
+    def initialise_all(self):
+        """Initialises all modules with current param card"""
+        if self.mods:
+            for proc in self.mods:
+                self.mods[proc].initialise(self.param_dir+self.param_card)
+        else: print("Warning: Tried to initialise empty module list")
+    
     def process_list(self, direc):
         """Constructs list of immediate subdirectories in direc"""
         dirs = subprocess.check_output(['find', direc, '-type', 'd', '-printf', "%f\n"])
@@ -22,7 +37,7 @@ class ME_interface(object):
 
     def import_list(self, direc = '.'):
         """Imports matrix2py from all subdirectories in direc"""
-        procs = process_list(direc)
+        procs = self.process_list(direc)
         self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
 
 
@@ -38,6 +53,10 @@ class ME_interface(object):
     
         # Construct dir name
         flavour = "P1_%s%s_%s%s%s%s%s%s" % (tuple(self.pdg[pid] for pid in ev[0]))
+
+        P = self.invert_momenta(ev[1])
+        alphas = 0.18 # Strong coupling
+        return self.mods[flavour].get_me(P, alphas, 0) # 0 => sum over helicities
 
     
 
