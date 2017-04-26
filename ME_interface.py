@@ -28,6 +28,7 @@ class ME_interface(object):
         """Initialises all modules with current param card"""
         if self.mods:
             for proc in self.mods:
+                print(proc)
                 self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
         else: print("Warning: Tried to initialise empty module list")
 

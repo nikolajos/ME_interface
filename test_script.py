@@ -13,11 +13,19 @@ p = [[+0.0000000000e+00, +0.0000000000e+00, +2.8884001842e+02, 2.8884001842e+02]
 matrix = ME_interface.ME_interface("params")
 matrix.import_list("../SubProcesses")
 matrix.param_card = "00.dat"
-matrix.mods['P1_ud_epvecddcx'].initialise(matrix.param_dir+'/'+matrix.param_card)
+matrix.initialise(flavours)
 ME = matrix.get_me((flavours,p))
 print("Parameters in %s gives:\n|M|^2 = %g" % (matrix.param_card, ME))
 
 matrix.param_card = "01.dat"
-matrix.mods['P1_ud_epvecddcx'].initialise(matrix.param_dir+'/'+matrix.param_card)
+matrix.initialise(flavours)
 ME = matrix.get_me((flavours,p))
 print("Parameters in %s gives:\n|M|^2 = %g" % (matrix.param_card, ME))
+
+matrix.mods['P1_uux_emvexcssxsx'].initialise(matrix.param_dir+'/'+matrix.param_card)
+print(matrix.get_me(([2,-2,11,-12,4,3,-3,-3],p)))
+
+matrix.mods['P1_us_emvexuusdx'].initialise(matrix.param_dir+'/'+matrix.param_card)
+print(matrix.get_me(([2,-2,11,-12,4,3,-3,-3],p)))
+
+#matrix.set_param_card("00.dat")
