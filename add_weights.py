@@ -4,7 +4,7 @@ from __future__ import division
 import sys
 import math
 import ROOT
-import numpy as np
+#import numpy as np
 from ME_interface import ME_interface
 
 if len(sys.argv) < 3:
@@ -42,10 +42,15 @@ for i in range(nentries):
     # Load selected branches with data from specified event
     #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
     t.GetEntry(i)
-    flavours = [par.PID for par in t.Particle]
-    p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle]
-    for j, par in enumerate(param_files):
-        ME_calc.initialise(flavours)
+    if i < 1000: print i
+    flavours = [par.PID for par in t.Particle if abs(par.PID) != 24]
+    proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
+    if proc not in ME_calc.mods:
+        flavours[0], flavours[1] = flavours[1], flavours[0]
+        proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
+    p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) != 24]
+    for j, card in enumerate(param_files):
+        ME_calc.mods[proc].initialise("params/"+card)
         weights[j] = ME_calc.get_me((flavours,p))
     tout.Fill()
         

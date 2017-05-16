@@ -11,7 +11,8 @@ class ME_interface(object):
 
     # PDG codes used to identify correct lib.
     # Note that the same matrix elements are used for e and mu.
-    pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}    
+#    pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
+    pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"d", -3:"dx", 4:"u", -4:"ux", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
 
     def __init__(self, path=""):
         """Interface constructor. Optionally sets path to parameter card directory"""
@@ -31,10 +32,14 @@ class ME_interface(object):
                 self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
         else: print("Warning: Tried to initialise empty module list")
 
-    def initialise(self, flavours):
+    def initialise(self, flavours, card=""):
         """Initialises library given by list of pdg codes flavours"""
         proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(self.pdg[pid] for pid in flavours))
-        self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
+        if card:
+            name = card
+        else: 
+            name = self.param_card
+        self.mods[proc].initialise(self.param_dir+'/'+name)
     
     def process_list(self, direc):
         """Constructs list of immediate subdirectories in direc"""
