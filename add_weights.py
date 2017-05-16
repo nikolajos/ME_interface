@@ -28,6 +28,7 @@ nentries = t.GetEntries()
 param_files = ["000.dat", "100.dat", "010.dat", "001.dat", "-100.dat", "0-10.dat", "00-1.dat", "1-10.dat", "01-1.dat", "-101.dat"]
 ME_calc = ME_interface("params")
 ME_calc.import_list("../SubProcesses")
+initialised = set()
 
 import numpy
 all_weights = numpy.zeros((nentries,len(param_files)))
@@ -39,18 +40,21 @@ print('-'*15)
 
 for j, card in enumerate(param_files):
     print("Param card %d of %d: %s" % (j,len(param_files),card))
-    ME_calc.set_param_card(card)
+    #ME_calc.set_param_card(card)
     progressBar = ROOT.ExRootProgressBar(nentries)
     for i in range(nentries):
         # Load selected branches with data from specified event
         #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
         t.GetEntry(i)
-        flavours = [par.PID for par in t.Particle if abs(par.PID) != 24]
+        flavours = [par.PID for par in t.Particle if (abs(par.PID) != 23 and abs(par.PID) != 24)]
         proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
         if proc not in ME_calc.mods:
             flavours[0], flavours[1] = flavours[1], flavours[0]
             proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
-        p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) != 24]
+        if proc not in initialised:
+            ME_calc.initialise(flavours, card)
+            initialised.add(proc)
+        p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if (abs(par.PID) != 23 and abs(par.PID) != 24)]
         all_weights[i,j] = ME_calc.get_me((flavours,p))
         
         progressBar.Update(i, i)
