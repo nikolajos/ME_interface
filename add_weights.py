@@ -4,17 +4,16 @@ from __future__ import division
 import sys
 import math
 import ROOT
+import numpy as np
+from ME_interface import ME_interface
 
 if len(sys.argv) < 3:
-    print(" Usage: add_weights.py input_file output_file")
+    print("Usage: add_weights.py input_file out_file")
     sys.exit(2)
 
 ROOT.gSystem.Load("libExRootAnalysis")
 try:
     ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootClasses.h"')
-    ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootTreeReader.h"')
-    ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootTreeWriter.h"')
-    ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootTreeBranch.h"')
     ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootProgressBar.h"')
 except:
     print("Include failed. Exiting")
@@ -23,45 +22,36 @@ except:
 inname = sys.argv[1]
 outname = sys.argv[2]
 
-# Create chain of root trees
-chain = ROOT.TChain("LHEF")
-chain.Add(inname)
+fin = ROOT.TFile(inname)
+t = fin.Get("LHEF")
+nentries = t.GetEntries()
 
-# Create object of class ExRootTreeReader
-treeReader = ROOT.ExRootTreeReader(chain)
-numberOfEntries = treeReader.GetEntries()
+fout = ROOT.TFile(outname, "RECREATE")
+tout = t.CloneTree(0)#ROOT.TTree("LHEF", "Weighted events")
 
-# Get pointers to branches used in this analysis
-eventin = treeReader.UseBranch("Event")
-particlesin = treeReader.UseBranch("Particle")
+weights = ROOT.std.vector('double')(10, 0.)
+tout.Branch("weights_true", weights)
 
-try:
-    outfile = ROOT.TFile.Open(outname, "RECREATE")
-except:
-    print("Failed to open %s" % outname)
-    sys.exit(1)
-treeWriter = ROOT.ExRootTreeWriter(outfile, "MC_TRUTH")
+param_files = ["000.dat", "100.dat", "010.dat", "001.dat", "-100.dat", "0-10.dat", "00-1.dat", "1-10.dat", "01-1.dat", "-101.dat"]
+ME_calc = ME_interface("params")
+ME_calc.import_list("../SubProcesses")
 
-branchEvent = treeWriter.NewBranch("Event", ROOT.TRootLHEFEvent.Class())
-branchParticle = treeWriter.NewBranch("Particle", ROOT.TRootLHEFParticle.Class())
-branchWeights = treeWriter.NewBranch("Weight", ROOT.TRootWeight.Class())
-
-progressBar = ROOT.ExRootProgressBar(numberOfEntries)
-treeWriter.Clear()
-for entry in range(0, numberOfEntries):
+progressBar = ROOT.ExRootProgressBar(nentries*len(param_files))
+print("%d entries in tree" % nentries)
+for i in range(nentries):
     # Load selected branches with data from specified event
-    treeReader.ReadEntry(entry)
+    #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
+    t.GetEntry(i)
+    flavours = [par.PID for par in t.Particle]
+    p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle]
+    for j, par in enumerate(param_files):
+        ME_calc.initialise(flavours)
+        weights[j] = ME_calc.get_me((flavours,p))
+    tout.Fill()
+        
+    progressBar.Update(i, i)
+progressBar.Update(i, i, ROOT.kTRUE)
+progressBar.Finish()
 
-    event = branchEvent.NewEntry()
-    event.Number = eventin.Number
-    event.Nparticles = eventin.Nparticles
-    event.ProcessID = eventin.ProcessID
-    event.Weight = eventin.Weight
-    event.ScalePDF = eventin.ScalePDF
-    event.CouplingQED = eventin.CouplingQED
-    event.CouplingQCD = evntin.CouplingQCD
-
-    
-    
-    
-    treeWriter.Clear()
+tout.Write()
+fout.Close()
