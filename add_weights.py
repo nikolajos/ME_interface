@@ -3,6 +3,7 @@ from __future__ import division
 
 import sys
 import math
+import progressbar
 import ROOT
 from ME_interface import ME_interface
 
@@ -13,7 +14,6 @@ if len(sys.argv) < 3:
 ROOT.gSystem.Load("libExRootAnalysis")
 try:
     ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootClasses.h"')
-    ROOT.gInterpreter.Declare('#include "ExRootAnalysis/ExRootProgressBar.h"')
 except:
     print("Include failed. Exiting")
     sys.exit(1)
@@ -39,10 +39,10 @@ print("Computing MEs")
 print('-'*15)
 
 for j, card in enumerate(param_files):
-    print("Param card %d of %d: %s" % (j,len(param_files),card))
+    print("Param card %d of %d: %s" % (j+1,len(param_files),card))
     #ME_calc.set_param_card(card)
-    progressBar = ROOT.ExRootProgressBar(nentries)
-    for i in range(nentries):
+    bar = progressbar.ProgressBar()
+    for i in bar(range(nentries)):
         # Load selected branches with data from specified event
         #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
         t.GetEntry(i)
@@ -57,9 +57,6 @@ for j, card in enumerate(param_files):
         p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) < 22]
         all_weights[i,j] = ME_calc.get_me((flavours,p))
         
-        progressBar.Update(i, i)
-    progressBar.Update(i, i, ROOT.kTRUE)
-    progressBar.Finish()
     print('\n')
 
 fout = ROOT.TFile(outname, "RECREATE")
@@ -68,16 +65,15 @@ tout = t.CloneTree(0)#ROOT.TTree("LHEF", "Weighted events")
 weights = ROOT.std.vector('double')(len(param_files), 0.)
 tout.Branch("weights_true", weights)
 
-progressBar = ROOT.ExRootProgressBar(nentries)
-for i in range(nentries):
+print("-"*15)
+print("Writing MEs to new tree")
+print('-'*15)
+bar = progressbar.ProgressBar()
+for i in bar(range(nentries)):
     weights.clear()
     for j in range(len(param_files)):
         weights[j] = all_weights[i,j]
     tout.Fill()
-    progressBar.Update(i, i)
-
-progressBar.Update(i, i, ROOT.kTRUE)
-progressBar.Finish()
 
 tout.Write()
 fout.Close()
