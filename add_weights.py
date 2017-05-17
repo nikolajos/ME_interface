@@ -47,16 +47,66 @@ for j, card in enumerate(param_files):
         #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
         t.GetEntry(i)
         flavours = [par.PID for par in t.Particle if abs(par.PID) < 22]
-        proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
+
+        init = -1
+        for k in (0,1):
+            if (flavours[k] == 4 and flavours[(k+1)%2] != 2) or (abs(flavours[k])==4 and flavours[(k+1)%2] == 21): 
+                flavours[k] /= 2
+                init = k
+                break
+            if (abs(flavours[k]) == 3 and flavours[(k+1)%2] == 21) or flavours[k] == 3 and flavours[(k+1)%2] == -1:
+                flavours[k] /= 3
+                init = k
+                break
+        if flavours[0]==flavours[1]==21:
+            for k, pid in enumerate(flavours[2:]):
+                if abs(pid) == 3:
+                    flavours[k+2] /= 3
+                    flavours[flavours.index(-pid/3*4,2)] /= 2
+
+        if init > -1:
+            try:
+                comp = {3:0, -3:0, 4:0, -4:0}
+                for k, pid in enumerate(flavours[2:]): comp[pid] = k+2
+                if i == 34: print init, flavours[init]*3/2, comp[flavours[init]*3/2]
+                if abs(flavours[init]) == 1:
+                    if comp[flavours[init]*3]: flavours[comp[flavours[init]*3]] /= 3
+                    else: flavours[comp[flavours[init]*4]] /= 2
+                else:            
+                    if comp[flavours[init]*2]: flavours[comp[flavours[init]*2]] /= 2
+                    elif comp[flavours[init]*3/2]: flavours[comp[flavours[init]*3/2]] /= 3
+                    elif comp[-flavours[init]*2]: flavours[comp[-flavours[init]*2]] /= 2
+                    elif comp[-flavours[init]*3/2]: flavours[comp[-flavours[init]*3/2]] /= 3
+        
+            except ValueError:
+                print i, flavours
+                import traceback
+                traceback.print_exc()
+                sys.exit(1)
+        try:
+            proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
+        except KeyError:
+            print i, flavours, init, comp
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        
         if proc not in ME_calc.mods:
             flavours[0], flavours[1] = flavours[1], flavours[0]
             proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
-        if proc not in initialised:
-            ME_calc.initialise(flavours, card)
-            initialised.add(proc)
-        p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) < 22]
-        all_weights[i,j] = ME_calc.get_me((flavours,p))
-        
+        try:
+            if proc not in initialised:
+                ME_calc.initialise(flavours, card)
+                initialised.add(proc)
+            p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) < 22]
+            all_weights[i,j] = ME_calc.get_me((flavours,p))
+        except KeyError:
+            print i, flavours, proc
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+    initialised.clear()
     print('\n')
 
 fout = ROOT.TFile(outname, "RECREATE")
