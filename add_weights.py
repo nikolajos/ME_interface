@@ -39,11 +39,10 @@ print("Computing MEs")
 print('-'*15)
 
 for j, card in enumerate(param_files):
-    if j > 1: break
     print("Param card %d of %d: %s" % (j+1,len(param_files),card))
     #ME_calc.set_param_card(card)
     bar = progressbar.ProgressBar()
-    for i in bar(range(500)):
+    for i in bar(range(nentries)):
         # Load selected branches with data from specified event
         #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
         t.GetEntry(i)
@@ -99,9 +98,9 @@ print("-"*15)
 print("Writing MEs to new tree")
 print('-'*15)
 bar = progressbar.ProgressBar()
-for i in bar(range(500)):
-    #weights.clear()
-    for j in range(2):#len(param_files)):
+for i in bar(range(nentries)):
+    weights.clear()
+    for j in range(len(param_files)):
         weights[j] = all_weights[i,j]
         if i == 0: print weights[j]
     tout.Fill()
