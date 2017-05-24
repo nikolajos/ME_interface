@@ -48,7 +48,7 @@ for j, card in enumerate(param_files):
         #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
         t.GetEntry(i)
         flavours = [par.PID for par in t.Particle if abs(par.PID) < 22]
-        p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) < 22]
+        p = [[par.E, par.Px, par.Py, par.Pz] for par in t.Particle if abs(par.PID) < 22]
 
         proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
         
