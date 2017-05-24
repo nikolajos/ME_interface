@@ -39,19 +39,22 @@ print("Computing MEs")
 print('-'*15)
 
 for j, card in enumerate(param_files):
+    if j > 1: break
     print("Param card %d of %d: %s" % (j+1,len(param_files),card))
     #ME_calc.set_param_card(card)
     bar = progressbar.ProgressBar()
-    for i in bar(range(nentries)):
+    for i in bar(range(500)):
         # Load selected branches with data from specified event
         #if i % (nentries//10) == 0: print("Event no.: %d - %d%% done." % (i, i/nentries*100))
         t.GetEntry(i)
         flavours = [par.PID for par in t.Particle if abs(par.PID) < 22]
+        p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) < 22]
 
         proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
         
         if proc not in ME_calc.mods:
             flavours[0], flavours[1] = flavours[1], flavours[0]
+            p[0], p[1] = p[1], p[0]
             proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
             if proc not in ME_calc.mods:
                 for k, pid in enumerate(flavours):
@@ -60,16 +63,25 @@ for j, card in enumerate(param_files):
                 proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
                 if proc not in ME_calc.mods:
                     flavours[0], flavours[1] = flavours[1], flavours[0]
+                    p[0], p[1] = p[1], p[0]
                     proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
                 
         try:
             if proc not in initialised:
                 ME_calc.initialise(flavours, card)
                 initialised.add(proc)
-            p = [[par.Px, par.Py, par.Pz, par.E] for par in t.Particle if abs(par.PID) < 22]
-            all_weights[i,j] = ME_calc.get_me((flavours,p))
+            me = ME_calc.get_me((flavours,p))
+            if math.isnan(me): raise ValueError("Got NaN at evt. %d, param card no. %d" % (i,j))
+            all_weights[i,j] = me
         except KeyError:
             print i, flavours, proc
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        except ValueError:
+            print [par.PID for par in t.Particle if abs(par.PID) < 22], flavours
+            for par in p:
+                print par
             import traceback
             traceback.print_exc()
             sys.exit(1)
@@ -87,10 +99,11 @@ print("-"*15)
 print("Writing MEs to new tree")
 print('-'*15)
 bar = progressbar.ProgressBar()
-for i in bar(range(nentries)):
-    weights.clear()
-    for j in range(len(param_files)):
+for i in bar(range(500)):
+    #weights.clear()
+    for j in range(2):#len(param_files)):
         weights[j] = all_weights[i,j]
+        if i == 0: print weights[j]
     tout.Fill()
 
 tout.Write()

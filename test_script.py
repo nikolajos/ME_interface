@@ -23,6 +23,7 @@ print(matrix.get_me(([2,-2,11,-12,4,3,-3,-3],p)))
 
 print(matrix.get_me(([1,-2,11,-12,21,21,2,-2],p)))
 
+print(matrix.get_me(([21, 1, 11, -12, 21, 21, 21, 2],p)))
 
 matrix.set_param_card("001.dat")
 
@@ -34,3 +35,6 @@ print(matrix.get_me(([2,3,11,-12,2,2,3,-1],p)))
 print(matrix.get_me(([2,-2,11,-12,4,3,-3,-3],p)))
 
 print(matrix.get_me(([1,-2,11,-12,21,21,2,-2],p)))
+
+print(matrix.get_me(([21, 1, 11, -12, 21, 21, 21, 2],p)))
+
