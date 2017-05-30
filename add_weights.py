@@ -99,7 +99,6 @@ print("Writing MEs to new tree")
 print('-'*15)
 bar = progressbar.ProgressBar()
 for i in bar(range(nentries)):
-    weights.clear()
     for j in range(len(param_files)):
         weights[j] = all_weights[i,j]
         if i == 0: print weights[j]
