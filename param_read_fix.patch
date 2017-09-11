@@ -1,8 +1,0 @@
-262c262
-< c      close(iunit)
----
->  99   close(iunit)
-267c267
-<  99   return
----
->       return
