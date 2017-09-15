@@ -7,7 +7,8 @@ if __name__ == "__main__":
     raise RuntimeError("This is only supposed to be used as a module")
 
 class ME_interface(object):
-    """Collection of methods for interfacing with MadGraph standalone matrix elements"""
+    """Collection of methods for interfacing with MadGraph standalone matrix elements.
+    Constructor takes a path as argument. Parameter cards are located relative to this path."""
 
     # PDG codes used to identify correct lib.
     # Note that the same matrix elements are used for e and mu.
@@ -21,7 +22,7 @@ class ME_interface(object):
         self.param_card = "param_card.dat"
 
     def set_param_card(self, name):
-        """Updates current param card"""
+        """Sets parameter card to name."""
         self.param_card = name
         if self.mods: self.initialise_all()
         
@@ -33,7 +34,7 @@ class ME_interface(object):
         else: print("Warning: Tried to initialise empty module list")
 
     def initialise(self, flavours, card=""):
-        """Initialises library given by list of pdg codes flavours"""
+        """Initialises library given by list of pdg codes flavours. Optionally takes a path to specific card to initialise."""
         proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(self.pdg[pid] for pid in flavours))
         if card:
             name = card
@@ -63,7 +64,11 @@ class ME_interface(object):
         return new_p
 
     def get_me(self, ev):
-        """Parton level ME using flavours and momenta from ev"""
+        """
+        Parton level ME using flavours and momenta from ev. 
+           - ev is understood as a list or tuple (pids, P) containing pdg codes and four-momenta for all participating particles. Momenta should be in C-order, i.e. one row = one particle.
+           - returns ME at point in phase-space defined by P.
+        """
     
         # Construct dir name
         flavour = "P1_%s%s_%s%s%s%s%s%s" % (tuple(self.pdg[pid] for pid in ev[0]))
