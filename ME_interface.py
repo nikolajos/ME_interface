@@ -1,5 +1,6 @@
 from __future__ import division
 import sys
+import math
 import subprocess
 import importlib
 
@@ -99,9 +100,9 @@ class ME_interface(object):
                 
         try:
             # Ensures that library is initialised to current parameters
-            if proc not in initialised:
+            if proc not in self.initialised:
                 self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
-                initialised.add(proc)
+                self.initialised.add(proc)
             P = self.invert_momenta(p) # C- to fortran-order
             alphas = 0.18 # Strong coupling
             me = self.mods[proc].get_me(P, alphas, 0) # 0 => sum over helicities
