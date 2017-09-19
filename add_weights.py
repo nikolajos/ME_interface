@@ -26,9 +26,8 @@ t = fin.Get("LHEF")
 nentries = t.GetEntries()
 
 param_files = ["000.dat", "100.dat", "010.dat", "001.dat", "-100.dat", "0-10.dat", "00-1.dat", "1-10.dat", "01-1.dat", "-101.dat"]
-ME_calc = ME_interface("params")
-ME_calc.import_list("../SubProcesses")
-initialised = set()
+ME_calc = ME_interface("params", "../SubProcesses")
+ME_calc.import_libs()
 
 import numpy
 all_weights = numpy.zeros((nentries,len(param_files)))
@@ -40,7 +39,7 @@ print('-'*15)
 
 for j, card in enumerate(param_files):
     print("Param card %d of %d: %s" % (j+1,len(param_files),card))
-    #ME_calc.set_param_card(card)
+    ME_calc.set_param_card(card)
     bar = progressbar.ProgressBar()
     for i in bar(range(nentries)):
         # Load selected branches with data from specified event
@@ -48,44 +47,8 @@ for j, card in enumerate(param_files):
         t.GetEntry(i)
         flavours = [par.PID for par in t.Particle if abs(par.PID) < 22]
         p = [[par.E, par.Px, par.Py, par.Pz] for par in t.Particle if abs(par.PID) < 22]
+        all_weights[i,j] = ME_calc.get_me(flavours, p)
 
-        proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
-        
-        if proc not in ME_calc.mods:
-            flavours[0], flavours[1] = flavours[1], flavours[0]
-            p[0], p[1] = p[1], p[0]
-            proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
-            if proc not in ME_calc.mods:
-                for k, pid in enumerate(flavours):
-                    if abs(pid) == 3: flavours[k] /= 3
-                    elif abs(pid) == 4: flavours[k] /= 2
-                proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
-                if proc not in ME_calc.mods:
-                    flavours[0], flavours[1] = flavours[1], flavours[0]
-                    p[0], p[1] = p[1], p[0]
-                    proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(ME_calc.pdg[f] for f in flavours))
-                
-        try:
-            if proc not in initialised:
-                ME_calc.initialise(flavours, card)
-                initialised.add(proc)
-            me = ME_calc.get_me((flavours,p))
-            if math.isnan(me): raise ValueError("Got NaN at evt. %d, param card no. %d" % (i,j))
-            all_weights[i,j] = me
-        except KeyError:
-            print i, flavours, proc
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-        except ValueError:
-            print [par.PID for par in t.Particle if abs(par.PID) < 22], flavours
-            for par in p:
-                print par
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
-
-    initialised.clear()
     print('\n')
 
 fout = ROOT.TFile(outname, "RECREATE")

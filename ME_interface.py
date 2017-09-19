@@ -7,48 +7,49 @@ if __name__ == "__main__":
     raise RuntimeError("This is only supposed to be used as a module")
 
 class ME_interface(object):
-    """Collection of methods for interfacing with MadGraph standalone matrix elements.
-    Constructor takes a path as argument. Parameter cards are located relative to this path."""
+    """
+    Collection of methods for interfacing with MadGraph standalone matrix 
+    elements. ME_interface(param_dir='.', proc_dir='.') constructs the 
+    object. 
+     - param_dir specifies the location of parameter cards. 
+     - proc_dir should point to the SubProcesses directory.
+
+    Basic usage:
+     - First do import_lib() to import and create list of libraries
+     - Then do set_param_card(name) to specify parameters
+     - For each event use get_me(pids, p) to get amplitude
+     - (optionally) Go to step two to change parameters
+    """
 
     # PDG codes used to identify correct lib.
     # Note that the same matrix elements are used for e and mu.
     pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
     #pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"d", -3:"dx", 4:"u", -4:"ux", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g", 23:"", -24:"", 24:""}
 
-    def __init__(self, path=""):
-        """Interface constructor. Optionally sets path to parameter card directory"""
+    def __init__(self, param_dir=".", proc_dir="."):
+        """Interface constructor. See class help text"""
         self.mods = None
-        self.param_dir = path
+        self.param_dir = param_dir
         self.param_card = "param_card.dat"
+        self.proc_dir = proc_dir
+        self.initialised = set()
 
     def set_param_card(self, name):
-        """Sets parameter card to name."""
+        """Sets parameter card to name and resets initialised processes."""
         self.param_card = name
-        if self.mods: self.initialise_all()
-        
-    def initialise_all(self):
-        """Initialises all modules with current param card"""
-        if self.mods:
-            for proc in self.mods:
-                self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
-        else: print("Warning: Tried to initialise empty module list")
-
-    def initialise(self, flavours, card=""):
-        """Initialises library given by list of pdg codes flavours. Optionally takes a path to specific card to initialise."""
-        proc = "P1_%s%s_%s%s%s%s%s%s" % (tuple(self.pdg[pid] for pid in flavours))
-        if card:
-            name = card
-        else: 
-            name = self.param_card
-        self.mods[proc].initialise(self.param_dir+'/'+name)
+        self.initialised.clear()
     
     def process_list(self, direc):
         """Constructs list of immediate subdirectories in direc"""
         dirs = subprocess.check_output(['find', direc, '-type', 'd', '-printf', "%f\n"])
         return (dirs.splitlines())[1:]
 
-    def import_list(self, direc = '.'):
-        """Imports matrix2py from all subdirectories in direc"""
+    def import_libs(self, direc = ''):
+        """
+        Imports matrix2py from all subdirectories of process directory. 
+        Class process directory can be overwritten by input argument direc.
+        """
+        if not direc: direc = self.proc_dir
         procs = self.process_list(direc)
         sys.path = [direc] + sys.path
         self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
@@ -56,26 +57,73 @@ class ME_interface(object):
 
 
     def invert_momenta(self, p):
-        """Converter momentum table from C to fortran order"""
+        """Converts momentum table from C to fortran order"""
         new_p = [[0 for j in p] for i in p[0]]
         for i, onep in enumerate(p):
             for j, x in enumerate(onep):
                 new_p[j][i] = x
         return new_p
 
-    def get_me(self, ev):
+    def get_me(self, pids, p):
         """
-        Parton level ME using flavours and momenta from ev. 
-           - ev is understood as a list or tuple (pids, P) containing pdg codes and four-momenta for all participating particles. Momenta should be in C-order, i.e. one row = one particle.
-           - returns ME at point in phase-space defined by P.
+        Computes parton level amplitude using input particle ids and 
+        four-momenta. 
+           - pids is a sequence containing pdg codes of all participating 
+             particles. The first two defines the initial state and the rest 
+             are final state.
+           - p is a list of four-momenta for said particles. These should be in 
+             C-order, i.e. one p[0] is a list giving the four-momentum of the 
+             first initial state particle, p[1] the four-momentum of the second 
+             and so on.
+           - returns ME at point in phase-space defined by p.
         """
     
         # Construct dir name
-        flavour = "P1_%s%s_%s%s%s%s%s%s" % (tuple(self.pdg[pid] for pid in ev[0]))
+        proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
 
-        P = self.invert_momenta(ev[1])
-        alphas = 0.18 # Strong coupling
-        return self.mods[flavour].get_me(P, alphas, 0) # 0 => sum over helicities
+        # Consider permutations of pids to find proc name
+        if proc not in self.mods:
+            pids[0], pids[1] = pids[1], pids[0]
+            p[0], p[1] = p[1], p[0]
+            proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
+            if proc not in self.mods:
+                for k, pid in enumerate(pids):
+                    # Converts s/c to d/u
+                    if abs(pid) == 3: pids[k] /= 3
+                    elif abs(pid) == 4: pids[k] /= 2
+                proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
+                if proc not in self.mods:
+                    pids[0], pids[1] = pids[1], pids[0]
+                    p[0], p[1] = p[1], p[0]
+                    proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
+                
+        try:
+            # Ensures that library is initialised to current parameters
+            if proc not in initialised:
+                self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
+                initialised.add(proc)
+            P = self.invert_momenta(p) # C- to fortran-order
+            alphas = 0.18 # Strong coupling
+            me = self.mods[proc].get_me(P, alphas, 0) # 0 => sum over helicities
+            if math.isnan(me): raise ValueError("Got NaN at evt., param card %s" % (self.param_card))
+            return me
+        except KeyError:
+            print("Unable to find matching library for process. Tried combination: ")
+            print(pids)
+            print(proc)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        except ValueError:
+            print("Invalid ME value for event with pids and momenta: ")
+            print(pids)
+            for par in p:
+                print(par)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+        
 
     
 
