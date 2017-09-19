@@ -1,6 +1,7 @@
 EVENTRWDIR = $(shell pwd)
 PROCDIR = ..
 
+
 APPLIED = $(shell patch -d $(PROCDIR)/Source/MODEL --dry-run -Rf lha_read.f lha_read.f.patch >/dev/null 2>&1 && echo APPLIED)
 ifeq ($(APPLIED),APPLIED)
 $(info Not applying patch.)
@@ -22,7 +23,7 @@ $(PROCDIR)/lib/libmodel.a: $(PATCH)
 
 patch:
 	cp $(EVENTRWDIR)/lha_read.f.patch $(PROCDIR)/Source/MODEL/
-	cd $(PROCDIR)/Source/MODEL && patch -Nsb lha_read.f lha_read.f.patch
+	patch -d $(PROCDIR)/Source/MODEL -Nsb lha_read.f lha_read.f.patch
 
 
 clean:
