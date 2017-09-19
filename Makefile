@@ -1,8 +1,6 @@
 EVENTRWDIR = $(shell pwd)
 PROCDIR = ..
 
-ABEFED = abe fed
-
 APPLIED = $(shell patch -d $(PROCDIR)/Source/MODEL --dry-run -Rf lha_read.f lha_read.f.patch >/dev/null 2>&1 && echo APPLIED)
 ifeq ($(APPLIED),APPLIED)
 $(info Not applying patch.)
