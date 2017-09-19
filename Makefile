@@ -1,20 +1,32 @@
 EVENTRWDIR = $(shell pwd)
 PROCDIR = ..
 
-all: SubProcesses
+ABEFED = abe fed
 
-SubProcesses: patch model
-	cd $(PROCDIR)/SubProcesses
-	for dir in */; do cd $dir; make matrix2py.so; cd ..; done
-	cd $(EVENTRWDIR)
+APPLIED = $(shell patch -d $(PROCDIR)/Source/MODEL --dry-run -Rf lha_read.f lha_read.f.patch >/dev/null 2>&1 && echo APPLIED)
+ifeq ($(APPLIED),APPLIED)
+$(info Not applying patch.)
+PATCH =
+else
+$(info Applying patch.)
+PATCH = patch
+endif
 
-model: patch
-	cd $(PROCDIR)/Source && $(MAKE) ../lib/libmodel.a
+SUBDIRS := $(wildcard $(PROCDIR)/SubProcesses/*/.)
 
-patch: lha_read.f.patch
-	patch $(PROCDIR)/Source/MODEL/lha_read.f lha_read.f.patch
+all: $(SUBDIRS)
+
+$(SUBDIRS): $(PROCDIR)/lib/libmodel.a
+	$(MAKE) -C $@ matrix2py.so
+
+$(PROCDIR)/lib/libmodel.a: $(PATCH)
+	$(MAKE) -C $(PROCDIR)/Source ../lib/libmodel.a
+
+patch:
+	cp $(EVENTRWDIR)/lha_read.f.patch $(PROCDIR)/Source/MODEL/
+	cd $(PROCDIR)/Source/MODEL && patch -Nsb lha_read.f lha_read.f.patch
+
 
 clean:
-	cd $(PROCDIR)/SubProcesses
-	for dir in */; do cd $dir; make clean; cd ..; done
-	cd $(EVENTRWDIR)
+	rm -f $(PROCDIR)/lib/libmodel.a
+	for dir in $(SUBDIRS); do rm -f $$dir/matrix2py.so; done
