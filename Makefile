@@ -13,7 +13,10 @@ endif
 
 SUBDIRS := $(wildcard $(PROCDIR)/SubProcesses/*/.)
 
-all: $(SUBDIRS)
+all: $(SUBDIRS) ident_card.dat
+
+ident_card.dat:
+	cp $(PROCDIR)/Cards/ident_card.dat $(EVENTRWDIR)/
 
 $(SUBDIRS): $(PROCDIR)/lib/libmodel.a
 	$(MAKE) -C $@ matrix2py.so
