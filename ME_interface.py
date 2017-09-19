@@ -114,7 +114,7 @@ class ME_interface(object):
             print(proc)
             import traceback
             traceback.print_exc()
-            sys.exit(1)
+            raise KeyError
         except ValueError:
             print("Invalid ME value for event with pids and momenta: ")
             print(pids)
@@ -122,7 +122,7 @@ class ME_interface(object):
                 print(par)
             import traceback
             traceback.print_exc()
-            sys.exit(1)
+            raise ValueError
 
         
 
