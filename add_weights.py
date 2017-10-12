@@ -26,7 +26,7 @@ t = fin.Get("LHEF")
 nentries = t.GetEntries()
 
 param_files = ["000.dat", "100.dat", "010.dat", "001.dat", "-100.dat", "0-10.dat", "00-1.dat", "1-10.dat", "01-1.dat", "-101.dat"]
-ME_calc = ME_interface("params", "../SubProcesses")
+ME_calc = ME_interface("Cards", "../SubProcesses")
 ME_calc.import_libs()
 
 import numpy
