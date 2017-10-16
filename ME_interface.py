@@ -45,13 +45,12 @@ class ME_interface(object):
         dirs = subprocess.check_output(['find', direc, '-type', 'd', '-printf', "%f\n"])
         return (dirs.splitlines())[1:]
 
-    def import_libs(self, direc = ''):
+    def import_libs(self):
         """
         Imports matrix2py from all subdirectories of process directory. 
         Class process directory can be overwritten by input argument direc.
         """
-        if not direc: direc = self.proc_dir
-        procs = self.process_list(direc)
+        procs = self.process_list(self.proc_dir)
         sys.path = [direc] + sys.path
         self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
         #print(self.mods)
