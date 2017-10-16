@@ -1,7 +1,7 @@
 from __future__ import division
 import sys
 import math
-import subprocess
+import os
 import importlib
 
 if __name__ == "__main__":
@@ -40,18 +40,13 @@ class ME_interface(object):
         self.param_card = name
         self.initialised.clear()
     
-    def process_list(self, direc):
-        """Constructs list of immediate subdirectories in direc"""
-        dirs = subprocess.check_output(['find', direc, '-type', 'd', '-printf', "%f\n"])
-        return (dirs.splitlines())[1:]
-
     def import_libs(self):
         """
         Imports matrix2py from all subdirectories of process directory. 
         Class process directory can be overwritten by input argument direc.
         """
-        procs = self.process_list(self.proc_dir)
-        sys.path = [direc] + sys.path
+        procs = os.walk(self.proc_dir).next()[1]
+        sys.path = [self.proc_dir] + sys.path
         self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
         #print(self.mods)
 
