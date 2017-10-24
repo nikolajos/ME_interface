@@ -1,7 +1,7 @@
 from __future__ import division
 import sys
 import math
-import os
+import os.path
 import importlib
 
 if __name__ == "__main__":
@@ -24,18 +24,16 @@ class ME_interface(object):
 
     def __init__(self, param_dir=".", proc_dir="."):
         """Interface constructor. See class help text"""
-        self.mods = None
+        self.mods = dict()
+        self.aliases = dict()
         self.param_dir = param_dir
         self.param_card = "param_card.dat"
         self.proc_dir = proc_dir
         self.initialised = set()
         # PDG codes used to identify correct lib.
         # Note that the same matrix elements are used for e and mu.
-        self.pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
+        #self.pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
         #pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"d", -3:"dx", 4:"u", -4:"ux", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g", 23:"", -24:"", 24:""}
-
-    def add_pdg(self, pid, name):
-        self.pdg[pid] = name
 
     def set_param_card(self, name):
         """Sets parameter card to name and resets initialised processes."""
@@ -47,11 +45,22 @@ class ME_interface(object):
         Imports matrix2py from all subdirectories of process directory. 
         Class process directory can be overwritten by input argument direc.
         """
-        procs = os.walk(self.proc_dir).next()[1]
+        if not os.path.exists('index'):
+            from extract_process import create_index
+            create_index(self.proc_dir)
+
         sys.path = [self.proc_dir] + sys.path
 
-        self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
-        #print(self.mods)
+        with open('index', 'r') as idx:
+            for line in idx:
+                proc = line.split(',')
+                self.mods[proc[0]] = importlib.import_module(".matrix2py", proc)
+                subs = [sub.split(' ') for sub in proc[1:]]
+                for sub in subs:
+                    self.aliases[ (frozenset(sub[:2]), frozenset(sub[2:])) ] = proc[0]
+
+        #self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
+
 
 
     def invert_momenta(self, p):
@@ -76,25 +85,8 @@ class ME_interface(object):
            - returns ME at point in phase-space defined by p.
         """
     
-        # Construct dir name
-        proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
+        proc = self.aliases[ (frozenset(pids[:2]), frozenset(pids[2:])) ]
 
-        # Consider permutations of pids to find proc name
-        if proc not in self.mods:
-            pids[0], pids[1] = pids[1], pids[0]
-            p[0], p[1] = p[1], p[0]
-            proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
-            if proc not in self.mods:
-                for k, pid in enumerate(pids):
-                    # Converts s/c to d/u
-                    if abs(pid) == 3: pids[k] /= 3
-                    elif abs(pid) == 4: pids[k] /= 2
-                proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
-                if proc not in self.mods:
-                    pids[0], pids[1] = pids[1], pids[0]
-                    p[0], p[1] = p[1], p[0]
-                    proc = "P1_%s%s_%s" % (self.pdg[pids[0]], self.pdg[pids[1]], ''.join((self.pdg[pid] for pid in pids[2:])))
-                
         try:
             # Ensures that library is initialised to current parameters
             if proc not in self.initialised:

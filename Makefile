@@ -13,13 +13,16 @@ endif
 
 SUBDIRS := $(wildcard $(MGOUTPUT)/SubProcesses/*/.)
 
-all: $(SUBDIRS) ident_card.dat
+all: $(SUBDIRS) ident_card.dat index
 
 ident_card.dat:
 	cp $(MGOUTPUT)/Cards/ident_card.dat $(EVENTRWDIR)/
 
 $(SUBDIRS): $(MGOUTPUT)/lib/libmodel.a
 	$(MAKE) -C $@ matrix2py.so
+
+index:
+	python extract_process.py -i $(MGOUTPUT)/SubProcesses
 
 $(MGOUTPUT)/lib/libmodel.a: $(PATCH)
 	$(MAKE) -C $(MGOUTPUT)/Source ../lib/libmodel.a
