@@ -22,11 +22,6 @@ class ME_interface(object):
      - (optionally) Go to step two to change parameters
     """
 
-    # PDG codes used to identify correct lib.
-    # Note that the same matrix elements are used for e and mu.
-    pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
-    #pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"d", -3:"dx", 4:"u", -4:"ux", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g", 23:"", -24:"", 24:""}
-
     def __init__(self, param_dir=".", proc_dir="."):
         """Interface constructor. See class help text"""
         self.mods = None
@@ -34,6 +29,13 @@ class ME_interface(object):
         self.param_card = "param_card.dat"
         self.proc_dir = proc_dir
         self.initialised = set()
+        # PDG codes used to identify correct lib.
+        # Note that the same matrix elements are used for e and mu.
+        self.pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"s", -3:"sx", 4:"c", -4:"cx", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g"}
+        #pdg = {1:"d", -1:"dx", 2:"u", -2:"ux", 3:"d", -3:"dx", 4:"u", -4:"ux", 11:"em", -11:"ep", 12:"ve", -12:"vex", 13:"em", -13:"ep", 14:"ve", -14:"vex", 21:"g", 23:"", -24:"", 24:""}
+
+    def add_pdg(self, pid, name):
+        self.pdg[pid] = name
 
     def set_param_card(self, name):
         """Sets parameter card to name and resets initialised processes."""
@@ -47,6 +49,7 @@ class ME_interface(object):
         """
         procs = os.walk(self.proc_dir).next()[1]
         sys.path = [self.proc_dir] + sys.path
+
         self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
         #print(self.mods)
 
