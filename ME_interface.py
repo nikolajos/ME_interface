@@ -3,6 +3,7 @@ import sys
 import math
 import os.path
 import importlib
+from collections import Counter
 
 if __name__ == "__main__":
     raise RuntimeError("This is only supposed to be used as a module")
@@ -54,10 +55,10 @@ class ME_interface(object):
         with open('index', 'r') as idx:
             for line in idx:
                 proc = line.split(',')
-                self.mods[proc[0]] = importlib.import_module(".matrix2py", proc)
-                subs = [sub.split(' ') for sub in proc[1:]]
+                self.mods[proc[0]] = importlib.import_module(".matrix2py", proc[0])
+                subs = [[int(e) for e in sub.split(' ')] for sub in proc[1:]]
                 for sub in subs:
-                    self.aliases[ (frozenset(sub[:2]), frozenset(sub[2:])) ] = proc[0]
+                    self.aliases[ (tuple(sorted(sub[:2])), tuple(sorted(sub[2:]))) ] = proc[0]
 
         #self.mods = {proc:importlib.import_module(".matrix2py", proc) for proc in procs}
 
@@ -84,10 +85,8 @@ class ME_interface(object):
              and so on.
            - returns ME at point in phase-space defined by p.
         """
-    
-        proc = self.aliases[ (frozenset(pids[:2]), frozenset(pids[2:])) ]
-
         try:
+            proc = self.aliases[ (tuple(sorted(pids[:2])), tuple(sorted(pids[2:]))) ]
             # Ensures that library is initialised to current parameters
             if proc not in self.initialised:
                 self.mods[proc].initialise(self.param_dir+'/'+self.param_card)
@@ -100,7 +99,7 @@ class ME_interface(object):
         except KeyError:
             print("Unable to find matching library for process. Tried combination: ")
             print(pids)
-            print(proc)
+            print(self.aliases.keys())
             import traceback
             traceback.print_exc()
             raise KeyError
