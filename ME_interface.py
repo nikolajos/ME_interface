@@ -43,8 +43,10 @@ class ME_interface(object):
     
     def import_libs(self):
         """
-        Imports matrix2py from all subdirectories of process directory. 
-        Class process directory can be overwritten by input argument direc.
+        Imports all libraries listed in index and stores a mapping from
+        pids of particles in handled processes to the corresponding
+        library name.
+        If index does not exist, it is created using extract_process
         """
         if not os.path.exists('index'):
             from extract_process import create_index
