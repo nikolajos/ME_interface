@@ -1,8 +1,8 @@
 EVENTRWDIR = $(shell pwd)
-PROCDIR = ..
+MGOUTPUT = ..
 
 
-APPLIED = $(shell patch -d $(PROCDIR)/Source/MODEL --dry-run -Rf lha_read.f lha_read.f.patch >/dev/null 2>&1 && echo APPLIED)
+APPLIED = $(shell patch -d $(MGOUTPUT)/Source/MODEL --dry-run -Rf lha_read.f lha_read.f.patch >/dev/null 2>&1 && echo APPLIED)
 ifeq ($(APPLIED),APPLIED)
 $(info Not applying patch.)
 PATCH =
@@ -11,24 +11,27 @@ $(info Applying patch.)
 PATCH = patch
 endif
 
-SUBDIRS := $(wildcard $(PROCDIR)/SubProcesses/*/.)
+SUBDIRS := $(wildcard $(MGOUTPUT)/SubProcesses/*/.)
 
-all: $(SUBDIRS) ident_card.dat
+all: $(SUBDIRS) ident_card.dat index
 
 ident_card.dat:
-	cp $(PROCDIR)/Cards/ident_card.dat $(EVENTRWDIR)/
+	cp $(MGOUTPUT)/Cards/ident_card.dat $(EVENTRWDIR)/
 
-$(SUBDIRS): $(PROCDIR)/lib/libmodel.a
+$(SUBDIRS): $(MGOUTPUT)/lib/libmodel.a
 	$(MAKE) -C $@ matrix2py.so
 
-$(PROCDIR)/lib/libmodel.a: $(PATCH)
-	$(MAKE) -C $(PROCDIR)/Source ../lib/libmodel.a
+index:
+	python extract_process.py -i $(MGOUTPUT)/SubProcesses
+
+$(MGOUTPUT)/lib/libmodel.a: $(PATCH)
+	$(MAKE) -C $(MGOUTPUT)/Source ../lib/libmodel.a
 
 patch:
-	cp $(EVENTRWDIR)/lha_read.f.patch $(PROCDIR)/Source/MODEL/
-	patch -d $(PROCDIR)/Source/MODEL -Nsb lha_read.f lha_read.f.patch
+	cp $(EVENTRWDIR)/lha_read.f.patch $(MGOUTPUT)/Source/MODEL/
+	patch -d $(MGOUTPUT)/Source/MODEL -Nsb lha_read.f lha_read.f.patch
 
 
 clean:
-	rm -f $(PROCDIR)/lib/libmodel.a
+	rm -f $(MGOUTPUT)/lib/libmodel.a
 	for dir in $(SUBDIRS); do rm -f $$dir/matrix2py.so; done
